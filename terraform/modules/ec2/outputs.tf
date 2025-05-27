@@ -38,12 +38,6 @@ output "instance_profile_arn" {
   value       = aws_iam_instance_profile.ec2_profile.arn
 }
 
-output "private_key_pem" {
-  description = "Private key in PEM format for SSH access"
-  value       = tls_private_key.key_pair.private_key_pem
-  sensitive   = true
-}
-
 output "key_pair_name" {
   description = "Name of the key pair"
   value       = aws_key_pair.ec2_key_pair.key_name

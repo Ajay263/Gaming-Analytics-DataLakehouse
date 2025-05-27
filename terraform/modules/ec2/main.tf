@@ -93,15 +93,10 @@ resource "aws_iam_role_policy" "ec2_policy" {
   })
 }
 
-# Generate key pair for EC2 instance
-resource "tls_private_key" "key_pair" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
+# Key pair for EC2 instance
 resource "aws_key_pair" "ec2_key_pair" {
   key_name   = "${var.project_name}-${var.environment}-key"
-  public_key = tls_private_key.key_pair.public_key_openssh
+  public_key = var.public_key
 }
 
 resource "aws_security_group" "airflow_security_group" {
