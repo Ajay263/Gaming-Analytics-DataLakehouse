@@ -317,3 +317,9 @@ echo "-------------------------END SETUP---------------------------"
 EOF
 
 }
+
+# Save private key locally
+resource "local_file" "private_key" {
+  content  = module.ec2.private_key_pem
+  filename = "${path.module}/keys/${var.project_name}-${var.environment}-key.pem"
+}
