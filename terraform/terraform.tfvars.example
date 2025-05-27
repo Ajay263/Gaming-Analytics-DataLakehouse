@@ -1,0 +1,46 @@
+# Project configuration
+# Name of the project, used as a prefix for all resources
+project_name = "gamepulse"
+
+# Environment (dev, staging, prod)
+environment = "dev"
+
+# AWS region where resources will be created
+aws_region = "eu-west-3"
+
+# Owner/team responsible for the resources
+owner = "gamepulse-team"
+
+# S3 bucket configuration
+# Suffixes for the different S3 buckets (will be prefixed with project_name and environment)
+raw_bucket_suffix = "raw-data"
+lakehouse_bucket_suffix = "lakehouse"
+glue_scripts_bucket_suffix = "glue-scripts"
+
+# Network configuration
+# VPC where resources will be created
+vpc_id = "vpc-XXXXX" # Replace with your VPC ID
+
+# Subnet where EC2 instance will be launched
+subnet_id = "subnet-XXXXX" # Replace with your Subnet ID
+
+# CIDR blocks allowed to access Airflow web UI and SSH
+allowed_cidr_blocks = [
+  "YOUR_IP/32" # Replace with your IP address
+]
+
+# Lambda configuration
+# Path to the Lambda function ZIP file
+lambda_zip_path = "../lambda_data_generator/dist/function.zip"
+
+# EC2/Airflow configuration
+# Instance type for the Airflow EC2 instance
+instance_type = "t3.large"
+
+# SSH key pair name for EC2 instance access
+key_name = "gamepulse-key"
+
+# AMI ID for the EC2 instance
+# Default: Ubuntu 22.04 LTS in eu-west-3 (Paris)
+# Note: Replace this if using a different region
+ami_id = "ami-0493936afbe820b28" 

@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create S3 for Terraform Backend with S3 State Locking
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: The name of the S3 bucket to be created for storing Terraform state files.
+    Default: gamepulse-tf-backend-resources
+
+Resources:
+  TerraformBackendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref S3BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Purpose
+          Value: TerraformState
+
+  TerraformStateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TerraformBackendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EnforceTLSRequestsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !Sub ${TerraformBackendBucket.Arn}/*
+              - !GetAtt TerraformBackendBucket.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  TerraformStateAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for accessing Terraform state with S3 state locking
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource: !GetAtt TerraformBackendBucket.Arn
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub ${TerraformBackendBucket.Arn}/terraform.tfstate
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+            Resource: !Sub ${TerraformBackendBucket.Arn}/terraform.tfstate.tflock
+
+Outputs:
+  TerraformBackendBucketName:
+    Description: S3 bucket name for the Terraform backend
+    Value: !Ref TerraformBackendBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-TerraformBackendBucketName
+
+  TerraformStateAccessPolicyArn:
+    Description: ARN of the IAM policy for Terraform state access
+    Value: !Ref TerraformStateAccessPolicy
+    Export:
+      Name: !Sub ${AWS::StackName}-TerraformStateAccessPolicyArn 
