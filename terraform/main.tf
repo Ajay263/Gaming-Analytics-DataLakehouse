@@ -91,8 +91,6 @@ module "ec2" {
   allowed_cidr_blocks = var.allowed_cidr_blocks
   ami_id              = var.ami_id
   instance_type       = var.instance_type
-  key_name            = var.key_name
-  airflow_role_name   = module.iam.airflow_role_name
 }
 
 locals {

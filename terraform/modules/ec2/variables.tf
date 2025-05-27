@@ -42,9 +42,4 @@ variable "allowed_cidr_blocks" {
 variable "key_name" {
   description = "Name of the SSH key pair"
   type        = string
-}
-
-variable "airflow_role_name" {
-  description = "Name of the IAM role for Airflow"
-  type        = string
 } 
