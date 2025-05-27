@@ -27,27 +27,13 @@ sudo systemctl enable docker
 
 echo "Installing Docker Compose..."
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
 sudo chmod +x /usr/local/bin/docker-compose
 
-echo "Creating Airflow directories..."
-mkdir -p /home/ubuntu/airflow/dags
-mkdir -p /home/ubuntu/airflow/logs
-mkdir -p /home/ubuntu/airflow/plugins
-mkdir -p /home/ubuntu/airflow/config
+# Add ubuntu user to docker group to run docker without sudo
+sudo usermod -aG docker ubuntu
 
-echo "Setting up Airflow with Docker Compose..."
-cd /home/ubuntu/airflow
+echo "Checking Docker Compose version..."
+docker-compose --version
 
-# Download the official docker-compose.yaml
-curl -LfO 'https://airflow.apache.org/docs/apache-airflow/2.7.1/docker-compose.yaml'
-
-# Set the Airflow user
-echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > .env
-
-# Initialize the Airflow database
-sudo docker-compose up airflow-init
-
-# Start Airflow services
-sudo docker-compose up -d
-
-echo "Docker and Airflow installation completed." 
+echo "Docker and Docker Compose installation completed." 
