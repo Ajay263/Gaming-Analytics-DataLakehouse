@@ -9,6 +9,8 @@ on:
     secrets:
       ROLE_TO_ASSUME:
         required: true
+      EC2_SSH_PUBLIC_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -29,6 +31,15 @@ jobs:
       TF_VAR_public_key: ${{ secrets.EC2_SSH_PUBLIC_KEY }}
 
     steps:
+    # Add debug step to check if the variable is set
+    - name: Debug public key
+      run: |
+        if [ -n "$TF_VAR_public_key" ]; then
+          echo "Public key is set"
+        else
+          echo "Public key is NOT set"
+        fi
+
     # Checkout the repository to the GitHub Actions runner
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
