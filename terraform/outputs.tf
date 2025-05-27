@@ -1,3 +1,15 @@
+output "airflow_ec2_public_dns" {
+  description = "Public DNS of the EC2 instance"
+  value       = module.ec2.public_ip
+}
+
+# We don't need the private_key output anymore since we're using a provided public key
+# output "private_key" {
+#   description = "Private key for SSH access"
+#   value       = tls_private_key.custom_key.private_key_pem
+#   sensitive   = true
+# }
+
 output "ecr_repository_url" {
   description = "URL of the ECR repository"
   value       = module.ecr.repository_url
@@ -15,11 +27,6 @@ output "glue_databases" {
     silver = module.glue.silver_database_name
     gold   = module.glue.gold_database_name
   }
-}
-
-output "airflow_instance_ip" {
-  description = "Public IP of the Airflow EC2 instance"
-  value       = module.ec2.public_ip
 }
 
 output "s3_buckets" {

@@ -143,6 +143,12 @@ variable "vpc_cidr" {
 }
 
 variable "public_key" {
-  description = "Public SSH key for EC2 instance access"
+  description = "The public key to use for SSH access to EC2 instances"
   type        = string
+}
+
+variable "key_name" {
+  description = "The name of the key pair to use for EC2 instances"
+  type        = string
+  default     = "gamepulse-key"
 }

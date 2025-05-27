@@ -163,13 +163,31 @@ resource "aws_iam_role" "lambda_iam_role" {
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-      },
+      }
     ]
   })
-
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess", "arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess", "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 }
 
+# Lambda IAM role policy attachments
+resource "aws_iam_role_policy_attachment" "lambda_ecr" {
+  role       = aws_iam_role.lambda_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_s3" {
+  role       = aws_iam_role.lambda_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_cloudwatch" {
+  role       = aws_iam_role.lambda_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
 
 # Glue databases for the lakehouse
 resource "aws_glue_catalog_database" "bronze_database" {
@@ -188,7 +206,7 @@ resource "aws_glue_catalog_database" "gold_database" {
 }
 
 
-# Glue IAM role 
+# Glue IAM role
 resource "aws_iam_role" "glue_iam_role" {
   name = var.glue_iam_role_name
   assume_role_policy = jsonencode({
@@ -200,13 +218,21 @@ resource "aws_iam_role" "glue_iam_role" {
         Principal = {
           Service = "glue.amazonaws.com"
         }
-      },
+      }
     ]
   })
-
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"]
 }
 
+# Glue IAM role policy attachments
+resource "aws_iam_role_policy_attachment" "glue_s3" {
+  role       = aws_iam_role.glue_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "glue_service" {
+  role       = aws_iam_role.glue_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
 
 # S3 bucket for glue script
 resource "aws_s3_bucket" "vg-lakehouse-glue-bucket" {
