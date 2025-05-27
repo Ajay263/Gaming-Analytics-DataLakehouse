@@ -25,8 +25,8 @@ output "airflow_instance_ip" {
 output "s3_buckets" {
   description = "IDs of the S3 buckets"
   value = {
-    raw_data      = module.s3.raw_data_bucket_id
-    glue_scripts  = module.s3.glue_scripts_bucket_id
-    lakehouse     = module.s3.lakehouse_bucket_id
+    raw_data     = module.s3.raw_data_bucket_id
+    glue_scripts = module.s3.glue_scripts_bucket_id
+    lakehouse    = module.s3.lakehouse_bucket_id
   }
 }
