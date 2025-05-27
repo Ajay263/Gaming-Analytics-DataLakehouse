@@ -5,14 +5,22 @@ Parameters:
   Repo:
     Description: 'The GitHub organization/repository (format: org/repo)'
     Type: String
+    AllowedPattern: '^[a-zA-Z0-9-_]+/[a-zA-Z0-9-_]+$'
+    ConstraintDescription: 'Must be in format: organization/repository'
   Environment:
     Description: 'The GitHub Actions environment name'
     Type: String
     Default: 'production'
+    AllowedPattern: '^[a-zA-Z0-9-_]+$'
+    ConstraintDescription: 'Environment name can only contain alphanumeric characters, hyphens, and underscores'
   TerraformBackendStackName:
     Description: 'Name of the CloudFormation stack that created the S3 backend'
     Type: String
     Default: 'terraform-backend'
+  StateBucketName:
+    Description: 'Name of the S3 bucket for Terraform state'
+    Type: String
+    Default: 'gamepulse-tf-backend-resources'
 
 Resources:
   GitHubOIDCProvider:
@@ -30,6 +38,7 @@ Resources:
 
   TerraformDeployRole:
     Type: 'AWS::IAM::Role'
+    DependsOn: GitHubOIDCProvider
     Properties:
       RoleName: !Sub 'github-actions-${AWS::StackName}'
       Description: 'IAM Role for GitHub Actions to deploy infrastructure using Terraform'
@@ -39,15 +48,39 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+              Federated: !GetAtt GitHubOIDCProvider.Arn
             Action: 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'
-                'token.actions.githubusercontent.com:sub': !Sub 'repo:${Repo}:environment:${Environment}'
-      ManagedPolicyArns:
-        - !ImportValue 
-          'Fn::Sub': '${TerraformBackendStackName}-TerraformStateAccessPolicyArn'
+              StringLike:
+                'token.actions.githubusercontent.com:sub': !Sub 'repo:${Repo}:*'
+
+  TerraformStatePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: 'Policy for accessing Terraform state in S3'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketVersioning'
+              - 's3:GetBucketLocation'
+            Resource: 
+              - !Sub 'arn:aws:s3:::${StateBucketName}'
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+            Resource:
+              - !Sub 'arn:aws:s3:::${StateBucketName}/*'
+              - !Sub 'arn:aws:s3:::${StateBucketName}/terraform.tfstate'
+              - !Sub 'arn:aws:s3:::${StateBucketName}/terraform.tfstate.tflock'
+      Roles:
+        - !Ref TerraformDeployRole
 
   TerraformDeployPolicy:
     Type: 'AWS::IAM::ManagedPolicy'
@@ -79,7 +112,6 @@ Resources:
               # KMS for Encryption
               - 'kms:*'
             Resource: '*'
-
       Roles:
         - !Ref TerraformDeployRole
 
