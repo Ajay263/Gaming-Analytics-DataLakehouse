@@ -15,7 +15,7 @@ terraform {
     encrypt      = true
     use_lockfile = true
 
-    }
+  }
 }
 
 # Configure the AWS Provider
@@ -36,11 +36,11 @@ module "networking" {
 module "s3" {
   source = "./modules/s3"
 
-  project_name              = var.project_name
-  environment              = var.environment
-  common_tags              = local.common_tags
-  raw_bucket_suffix        = var.raw_bucket_suffix
-  lakehouse_bucket_suffix  = var.lakehouse_bucket_suffix
+  project_name               = var.project_name
+  environment                = var.environment
+  common_tags                = local.common_tags
+  raw_bucket_suffix          = var.raw_bucket_suffix
+  lakehouse_bucket_suffix    = var.lakehouse_bucket_suffix
   glue_scripts_bucket_suffix = var.glue_scripts_bucket_suffix
 }
 
@@ -56,10 +56,10 @@ module "iam" {
   source = "./modules/iam"
 
   project_name            = var.project_name
-  environment            = var.environment
-  common_tags            = local.common_tags
-  raw_data_bucket_arn    = module.s3.raw_data_bucket_arn
-  lakehouse_bucket_arn   = module.s3.lakehouse_bucket_arn
+  environment             = var.environment
+  common_tags             = local.common_tags
+  raw_data_bucket_arn     = module.s3.raw_data_bucket_arn
+  lakehouse_bucket_arn    = module.s3.lakehouse_bucket_arn
   glue_scripts_bucket_arn = module.s3.glue_scripts_bucket_arn
 }
 
@@ -67,38 +67,38 @@ module "lambda" {
   source = "./modules/lambda"
 
   project_name         = var.project_name
-  environment         = var.environment
-  common_tags         = local.common_tags
-  lambda_zip_path     = var.lambda_zip_path
-  lambda_role_arn     = module.iam.lambda_role_arn
+  environment          = var.environment
+  common_tags          = local.common_tags
+  lambda_zip_path      = var.lambda_zip_path
+  lambda_role_arn      = module.iam.lambda_role_arn
   raw_data_bucket_name = module.s3.raw_data_bucket_id
 }
 
 module "glue" {
   source = "./modules/glue"
 
-  project_name            = var.project_name
-  environment            = var.environment
-  common_tags            = local.common_tags
-  glue_role_arn          = module.iam.glue_role_arn
+  project_name             = var.project_name
+  environment              = var.environment
+  common_tags              = local.common_tags
+  glue_role_arn            = module.iam.glue_role_arn
   glue_scripts_bucket_name = module.s3.glue_scripts_bucket_id
-  raw_data_bucket_name    = module.s3.raw_data_bucket_id
-  lakehouse_bucket_name   = module.s3.lakehouse_bucket_id
+  raw_data_bucket_name     = module.s3.raw_data_bucket_id
+  lakehouse_bucket_name    = module.s3.lakehouse_bucket_id
 }
 
 module "ec2" {
   source = "./modules/ec2"
 
   project_name        = var.project_name
-  environment        = var.environment
-  common_tags        = local.common_tags
-  vpc_id            = module.networking.vpc_id
-  subnet_id         = module.networking.private_subnet_ids[0]
+  environment         = var.environment
+  common_tags         = local.common_tags
+  vpc_id              = module.networking.vpc_id
+  subnet_id           = module.networking.private_subnet_ids[0]
   allowed_cidr_blocks = var.allowed_cidr_blocks
-  ami_id            = var.ami_id
-  instance_type     = var.instance_type
-  key_name         = var.key_name
-  airflow_role_name = module.iam.airflow_role_name
+  ami_id              = var.ami_id
+  instance_type       = var.instance_type
+  key_name            = var.key_name
+  airflow_role_name   = module.iam.airflow_role_name
 }
 
 locals {
@@ -153,7 +153,7 @@ resource "aws_s3_object" "delta_jar_storage" {
 
 # Eventbridge rule to trigger lambda
 resource "aws_cloudwatch_event_rule" "event-rule" {
-  name        = var.eventbridge_rule
+  name                = var.eventbridge_rule
   schedule_expression = "rate(2 hours)"
 
 }
@@ -174,23 +174,23 @@ resource "aws_iam_role" "lambda_iam_role" {
     ]
   })
 
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess", "arn:aws:iam::aws:policy/AmazonS3FullAccess","arn:aws:iam::aws:policy/CloudWatchEventsFullAccess","arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess", "arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess", "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 }
 
 
 # Glue databases for the lakehouse
 resource "aws_glue_catalog_database" "bronze_database" {
-  name = var.bronze_glue_database
+  name         = var.bronze_glue_database
   location_uri = var.s3_location_bronze_glue_database
 }
 
 resource "aws_glue_catalog_database" "silver_database" {
-  name = var.silver_glue_database
+  name         = var.silver_glue_database
   location_uri = var.s3_location_silver_glue_database
 }
 
 resource "aws_glue_catalog_database" "gold_database" {
-  name = var.gold_glue_database
+  name         = var.gold_glue_database
   location_uri = var.s3_location_gold_glue_database
 }
 
@@ -211,7 +211,7 @@ resource "aws_iam_role" "glue_iam_role" {
     ]
   })
 
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonS3FullAccess","arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"]
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"]
 }
 
 
@@ -254,31 +254,31 @@ resource "aws_security_group" "airflow_security_group" {
 
 
 data "aws_ami" "ubuntu" {
-    most_recent = true
+  most_recent = true
 
-    filter {
+  filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-    }
+  }
 
-    filter {
+  filter {
     name   = "virtualization-type"
     values = ["hvm"]
-    }
+  }
 
-    owners = ["099720109477"] # Canonical
+  owners = ["099720109477"] # Canonical
 }
 
 
 resource "tls_private_key" "custom_key" {
-    algorithm = "RSA"
-    rsa_bits  = 4096
+  algorithm = "RSA"
+  rsa_bits  = 4096
 }
 
 
 resource "aws_key_pair" "generated_key" {
-    key_name   = var.key_name
-    public_key = tls_private_key.custom_key.public_key_openssh
+  key_name   = var.key_name
+  public_key = tls_private_key.custom_key.public_key_openssh
 }
 
 
@@ -287,7 +287,7 @@ resource "aws_instance" "airflow_ec2" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.airflow_instance_type
 
-  key_name        = aws_key_pair.generated_key.key_name
+  key_name               = aws_key_pair.generated_key.key_name
   vpc_security_group_ids = [aws_security_group.airflow_security_group.id]
 
   tags = {
