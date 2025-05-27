@@ -134,11 +134,6 @@ variable "instance_type" {
   default     = "t3.large"
 }
 
-variable "key_name" {
-  description = "Name of the SSH key pair"
-  type        = string
-}
-
 # S3 bucket names
 variable "raw_bucket_suffix" {
   description = "Suffix for the raw data bucket name"
