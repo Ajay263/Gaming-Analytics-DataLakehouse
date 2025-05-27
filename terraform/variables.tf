@@ -68,13 +68,6 @@ variable "glue_script_bucket" {
 
 }
 
-variable "key_name" {
-  type        = string
-  default     = "app-key"
-  description = "EC2 key name"
-}
-
-
 variable "airflow_instance_type" {
   type        = string
   default     = "t2.xlarge"
@@ -141,4 +134,15 @@ variable "glue_scripts_bucket_suffix" {
   description = "Suffix for the Glue scripts bucket name"
   type        = string
   default     = "glue-scripts"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_key" {
+  description = "Public SSH key for EC2 instance access"
+  type        = string
 }

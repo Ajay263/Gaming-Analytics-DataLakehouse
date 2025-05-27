@@ -36,4 +36,9 @@ output "instance_profile_name" {
 output "instance_profile_arn" {
   description = "ARN of the IAM instance profile"
   value       = aws_iam_instance_profile.ec2_profile.arn
+}
+
+output "key_pair_name" {
+  description = "Name of the key pair"
+  value       = aws_key_pair.ec2_key_pair.key_name
 } 

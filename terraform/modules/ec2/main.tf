@@ -93,8 +93,9 @@ resource "aws_iam_role_policy" "ec2_policy" {
   })
 }
 
+# Key pair for EC2 instance
 resource "aws_key_pair" "ec2_key_pair" {
-  key_name   = "${var.project_name}-key"
+  key_name   = "${var.project_name}-${var.environment}-key"
   public_key = var.public_key
 }
 

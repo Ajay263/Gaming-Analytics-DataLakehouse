@@ -91,8 +91,6 @@ module "ec2" {
   allowed_cidr_blocks = var.allowed_cidr_blocks
   ami_id              = var.ami_id
   instance_type       = var.instance_type
-  key_name            = var.key_name
-  airflow_role_name   = module.iam.airflow_role_name
 }
 
 locals {
@@ -316,4 +314,10 @@ echo "-------------------------END SETUP---------------------------"
 
 EOF
 
+}
+
+# Save private key locally
+resource "local_file" "private_key" {
+  content  = module.ec2.private_key_pem
+  filename = "${path.module}/keys/${var.project_name}-${var.environment}-key.pem"
 }
