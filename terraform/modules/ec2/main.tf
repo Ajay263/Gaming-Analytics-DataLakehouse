@@ -157,10 +157,9 @@ resource "aws_instance" "airflow_ec2" {
     )
   }
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.project_name}-airflow-instance"
-    }
-  )
+  tags = merge(var.common_tags, {
+    Name      = "${var.project_name}-airflow-ec2"
+    Component = "Orchestration"
+    Service   = "Airflow"
+  })
 } 
