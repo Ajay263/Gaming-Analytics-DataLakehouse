@@ -37,9 +37,4 @@ variable "subnet_id" {
 variable "allowed_cidr_blocks" {
   description = "List of CIDR blocks allowed to access the EC2 instance"
   type        = list(string)
-}
-
-variable "key_name" {
-  description = "Name of the SSH key pair"
-  type        = string
 } 

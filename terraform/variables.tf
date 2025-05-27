@@ -68,13 +68,6 @@ variable "glue_script_bucket" {
 
 }
 
-variable "key_name" {
-  type        = string
-  default     = "app-key"
-  description = "EC2 key name"
-}
-
-
 variable "airflow_instance_type" {
   type        = string
   default     = "t2.xlarge"
