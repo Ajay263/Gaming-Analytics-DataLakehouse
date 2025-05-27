@@ -1,12 +1,11 @@
 variable "raw_bucket_name" {
-  type    = string
-  default = "vg-raw-data"
+  type        = string
+  description = "Name of the raw data bucket"
 }
 
-
 variable "lakehouse_bucket_name" {
-  type    = string
-  default = "vg-lakehouse"
+  type        = string
+  description = "Name of the lakehouse bucket"
 }
 
 variable "lambda_ecr_repo" {
@@ -24,12 +23,10 @@ variable "lambda_iam_role_name" {
   default = "s3-cloudwatch-ecr-lambdarole"
 }
 
-
 variable "glue_iam_role_name" {
   type    = string
   default = "vg-glue-role"
 }
-
 
 variable "bronze_glue_database" {
   type    = string
@@ -45,7 +42,6 @@ variable "gold_glue_database" {
   type    = string
   default = "gold"
 }
-
 
 variable "s3_location_bronze_glue_database" {
   type    = string
@@ -63,9 +59,8 @@ variable "s3_location_gold_glue_database" {
 }
 
 variable "glue_script_bucket" {
-  type    = string
-  default = "vg-lakehouse-glue"
-
+  type        = string
+  description = "Name of the Glue scripts bucket"
 }
 
 variable "airflow_instance_type" {
@@ -121,19 +116,16 @@ variable "instance_type" {
 variable "raw_bucket_suffix" {
   description = "Suffix for the raw data bucket name"
   type        = string
-  default     = "raw-data"
 }
 
 variable "lakehouse_bucket_suffix" {
   description = "Suffix for the lakehouse bucket name"
   type        = string
-  default     = "lakehouse"
 }
 
 variable "glue_scripts_bucket_suffix" {
   description = "Suffix for the Glue scripts bucket name"
   type        = string
-  default     = "glue-scripts"
 }
 
 variable "vpc_cidr" {
@@ -143,6 +135,12 @@ variable "vpc_cidr" {
 }
 
 variable "public_key" {
-  description = "Public SSH key for EC2 instance access"
+  description = "The public key to use for SSH access to EC2 instances"
   type        = string
+}
+
+variable "key_name" {
+  description = "The name of the key pair to use for EC2 instances"
+  type        = string
+  default     = "gamepulse-key"
 }
