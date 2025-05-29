@@ -1,33 +1,29 @@
 variable "project_name" {
-  description = "Name of the project"
   type        = string
+  description = "Name of the project"
 }
 
 variable "environment" {
-  description = "Environment (dev, staging, prod)"
   type        = string
+  description = "Environment (dev/staging/prod)"
 }
 
 variable "common_tags" {
-  description = "Common tags to be applied to all resources"
   type        = map(string)
-  default     = {}
+  description = "Common tags to be applied to all resources"
 }
 
 variable "raw_bucket_suffix" {
-  description = "Suffix for the raw data bucket name"
   type        = string
-  default     = "raw-data"
+  description = "Suffix for the raw data bucket"
 }
 
 variable "lakehouse_bucket_suffix" {
-  description = "Suffix for the lakehouse bucket name"
   type        = string
-  default     = "lakehouse"
+  description = "Suffix for the lakehouse bucket"
 }
 
 variable "glue_scripts_bucket_suffix" {
-  description = "Suffix for the Glue scripts bucket name"
   type        = string
-  default     = "glue-scripts"
+  description = "Suffix for the glue scripts bucket"
 } 

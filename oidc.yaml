@@ -23,37 +23,78 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # S3 Permissions
+              # VPC and Networking Permissions
+              - Sid: VPCAccess
+                Effect: Allow
+                Action:
+                  - ec2:CreateVpc
+                  - ec2:DeleteVpc
+                  - ec2:CreateSubnet
+                  - ec2:DeleteSubnet
+                  - ec2:CreateRouteTable
+                  - ec2:DeleteRouteTable
+                  - ec2:CreateRoute
+                  - ec2:DeleteRoute
+                  - ec2:AssociateRouteTable
+                  - ec2:DisassociateRouteTable
+                  - ec2:CreateInternetGateway
+                  - ec2:DeleteInternetGateway
+                  - ec2:AttachInternetGateway
+                  - ec2:DetachInternetGateway
+                  - ec2:CreateNatGateway
+                  - ec2:DeleteNatGateway
+                  - ec2:AllocateAddress
+                  - ec2:ReleaseAddress
+                  - ec2:CreateTags
+                  - ec2:DeleteTags
+                Resource: "*"
+
+              # S3 Bucket Permissions
               - Sid: S3Access
                 Effect: Allow
-                Action: 
-                  - s3:GetObject
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutBucketVersioning
+                  - s3:GetBucketVersioning
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutBucketAcl
+                  - s3:GetBucketAcl
                   - s3:PutObject
-                  - s3:ListBucket
+                  - s3:GetObject
                   - s3:DeleteObject
-                Resource: 
-                  - arn:aws:s3:::gaming-analytics-*
-                  - arn:aws:s3:::gaming-analytics-*/*
-                  
-              # IAM Permissions for Lambda Role Management
-              - Sid: IAMAccess
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
+                Resource:
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-gaming-analytics-*
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-gaming-analytics-*/*
+
+              # ECR Permissions
+              - Sid: ECRAccess
                 Effect: Allow
-                Action: 
-                  - iam:GetRole
-                  - iam:CreateRole
-                  - iam:DeleteRole
-                  - iam:PutRolePolicy
-                  - iam:DeleteRolePolicy
-                  - iam:AttachRolePolicy
-                  - iam:DetachRolePolicy
-                  - iam:PassRole
-                Resource: 
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/gaming-analytics-*
-                  
+                Action:
+                  - ecr:CreateRepository
+                  - ecr:DeleteRepository
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:GetRepositoryPolicy
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                  - ecr:ListImages
+                Resource: !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/gaming-analytics-*
+
               # Lambda Permissions
               - Sid: LambdaAccess
                 Effect: Allow
-                Action: 
+                Action:
                   - lambda:CreateFunction
                   - lambda:DeleteFunction
                   - lambda:GetFunction
@@ -61,61 +102,127 @@ Resources:
                   - lambda:UpdateFunctionConfiguration
                   - lambda:AddPermission
                   - lambda:RemovePermission
+                  - lambda:InvokeFunction
                   - lambda:ListVersionsByFunction
                   - lambda:PublishVersion
                   - lambda:CreateAlias
                   - lambda:DeleteAlias
                   - lambda:UpdateAlias
                 Resource: !Sub arn:aws:lambda:*:${AWS::AccountId}:function:gaming-analytics-*
-                  
-              # ECR Permissions for Container Deployments
-              - Sid: ECRAccess
-                Effect: Allow
-                Action: 
-                  - ecr:GetAuthorizationToken
-                  - ecr:BatchCheckLayerAvailability
-                  - ecr:GetDownloadUrlForLayer
-                  - ecr:GetRepositoryPolicy
-                  - ecr:DescribeRepositories
-                  - ecr:ListImages
-                  - ecr:DescribeImages
-                  - ecr:BatchGetImage
-                  - ecr:InitiateLayerUpload
-                  - ecr:UploadLayerPart
-                  - ecr:CompleteLayerUpload
-                  - ecr:PutImage
-                Resource: !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/gaming-analytics-*
-                  
-              # CloudWatch Permissions for Lambda Logs
-              - Sid: CloudWatchAccess
-                Effect: Allow
-                Action: 
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:DescribeLogStreams
-                Resource: 
-                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*
-                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*:*
-                  
-              # EventBridge Permissions for Lambda Triggers
+
+              # EventBridge Permissions
               - Sid: EventBridgeAccess
                 Effect: Allow
-                Action: 
+                Action:
                   - events:PutRule
                   - events:DeleteRule
                   - events:PutTargets
                   - events:RemoveTargets
+                  - events:ListRules
+                  - events:ListTargetsByRule
                   - events:DescribeRule
                 Resource: !Sub arn:aws:events:*:${AWS::AccountId}:rule/gaming-analytics-*
-                  
+
+              # CloudWatch Logs Permissions
+              - Sid: CloudWatchLogsAccess
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:CreateLogStream
+                  - logs:DeleteLogStream
+                  - logs:PutLogEvents
+                  - logs:GetLogEvents
+                  - logs:FilterLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*
+                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*:*
+
+              # Glue Permissions
+              - Sid: GlueAccess
+                Effect: Allow
+                Action:
+                  - glue:CreateDatabase
+                  - glue:DeleteDatabase
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:CreateTable
+                  - glue:DeleteTable
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:CreateJob
+                  - glue:DeleteJob
+                  - glue:GetJob
+                  - glue:StartJobRun
+                  - glue:StopJobRun
+                  - glue:BatchStopJobRun
+                  - glue:UpdateJob
+                Resource: !Sub arn:aws:glue:*:${AWS::AccountId}:*
+
+              # EC2 Instance Permissions
+              - Sid: EC2InstanceAccess
+                Effect: Allow
+                Action:
+                  - ec2:RunInstances
+                  - ec2:TerminateInstances
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                  - ec2:CreateSecurityGroup
+                  - ec2:DeleteSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:DescribeInstances
+                  - ec2:DescribeSecurityGroups
+                  - ec2:CreateKeyPair
+                  - ec2:DeleteKeyPair
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    'aws:ResourceTag/Project': 'gaming-analytics'
+
+              # IAM Role Management
+              - Sid: IAMAccess
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PassRole
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/gaming-analytics-*
+
+              # KMS Permissions for Encryption
+              - Sid: KMSAccess
+                Effect: Allow
+                Action:
+                  - kms:CreateKey
+                  - kms:DescribeKey
+                  - kms:EnableKey
+                  - kms:DisableKey
+                  - kms:CreateAlias
+                  - kms:DeleteAlias
+                  - kms:ListAliases
+                  - kms:GenerateDataKey
+                  - kms:Encrypt
+                  - kms:Decrypt
+                Resource: !Sub arn:aws:kms:*:${AWS::AccountId}:key/*
+                Condition:
+                  StringLike:
+                    'aws:ResourceTag/Project': 'gaming-analytics'
+
               # Global Read Permissions
               - Sid: GlobalReadPermissions
                 Effect: Allow
                 Action:
                   - sts:GetCallerIdentity
+                  - ec2:DescribeAvailabilityZones
+                  - ec2:DescribeRegions
                   - iam:GetAccountSummary
                   - ecr:GetAuthorizationToken
+                  - pricing:GetProducts
                 Resource: "*"
 
   GitHubActionsOidcProvider:
