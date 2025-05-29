@@ -9,53 +9,53 @@ variable "lakehouse_bucket_name" {
 }
 
 variable "lambda_ecr_repo" {
-  type    = string
-  default = "ecr-repo-lambda-vg"
+  type        = string
+  description = "Name of the ECR repository for Lambda"
 }
 
 variable "eventbridge_rule" {
-  type    = string
-  default = "rule-vg"
+  type        = string
+  description = "Name of the EventBridge rule"
 }
 
 variable "lambda_iam_role_name" {
-  type    = string
-  default = "s3-cloudwatch-ecr-lambdarole"
+  type        = string
+  description = "Name of the Lambda IAM role"
 }
 
 variable "glue_iam_role_name" {
-  type    = string
-  default = "vg-glue-role"
+  type        = string
+  description = "Name of the Glue IAM role"
 }
 
 variable "bronze_glue_database" {
-  type    = string
-  default = "bronze"
+  type        = string
+  description = "Name of the Bronze Glue database"
 }
 
 variable "silver_glue_database" {
-  type    = string
-  default = "silver"
+  type        = string
+  description = "Name of the Silver Glue database"
 }
 
 variable "gold_glue_database" {
-  type    = string
-  default = "gold"
+  type        = string
+  description = "Name of the Gold Glue database"
 }
 
 variable "s3_location_bronze_glue_database" {
-  type    = string
-  default = "s3://vg-lakehouse/lakehouse/bronze/"
+  type        = string
+  description = "S3 location for Bronze Glue database"
 }
 
 variable "s3_location_silver_glue_database" {
-  type    = string
-  default = "s3://vg-lakehouse/lakehouse/silver/"
+  type        = string
+  description = "S3 location for Silver Glue database"
 }
 
 variable "s3_location_gold_glue_database" {
-  type    = string
-  default = "s3://vg-lakehouse/lakehouse/gold/"
+  type        = string
+  description = "S3 location for Gold Glue database"
 }
 
 variable "glue_script_bucket" {
@@ -65,82 +65,75 @@ variable "glue_script_bucket" {
 
 variable "airflow_instance_type" {
   type        = string
-  default     = "t2.xlarge"
-  description = "Airflow instance typ ec2"
+  description = "Airflow instance type for EC2"
 }
 
 variable "aws_region" {
-  description = "AWS region"
   type        = string
-  default     = "eu-west-3"
+  description = "AWS region"
 }
 
 variable "project_name" {
-  description = "Name of the project"
   type        = string
-  default     = "gamepulse"
+  description = "Project name to be used for resource naming"
 }
 
 variable "environment" {
-  description = "Environment (dev, staging, prod)"
   type        = string
+  description = "Environment (dev/staging/prod)"
 }
 
 variable "owner" {
-  description = "Owner of the resources"
   type        = string
+  description = "Owner of the project"
 }
 
 variable "lambda_zip_path" {
-  description = "Path to the Lambda function ZIP file"
   type        = string
+  description = "Path to the lambda zip file"
 }
 
 variable "allowed_cidr_blocks" {
-  description = "List of CIDR blocks allowed to access the Airflow instance"
   type        = list(string)
+  description = "Allowed CIDR blocks for the EC2 instance"
 }
 
 variable "ami_id" {
-  description = "ID of the AMI to use for the EC2 instance"
   type        = string
+  description = "ID of the AMI to use for the EC2 instance"
 }
 
 variable "instance_type" {
-  description = "Type of EC2 instance for Airflow"
   type        = string
-  default     = "t3.large"
-}
-
-# S3 bucket names
-variable "raw_bucket_suffix" {
-  description = "Suffix for the raw data bucket name"
-  type        = string
-}
-
-variable "lakehouse_bucket_suffix" {
-  description = "Suffix for the lakehouse bucket name"
-  type        = string
-}
-
-variable "glue_scripts_bucket_suffix" {
-  description = "Suffix for the Glue scripts bucket name"
-  type        = string
+  description = "Instance type for the EC2 instance"
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for VPC"
   type        = string
-  default     = "10.0.0.0/16"
+  description = "CIDR block for the VPC"
+}
+
+variable "raw_bucket_suffix" {
+  type        = string
+  description = "Suffix for the raw data bucket"
+}
+
+variable "lakehouse_bucket_suffix" {
+  type        = string
+  description = "Suffix for the lakehouse bucket"
+}
+
+variable "glue_scripts_bucket_suffix" {
+  type        = string
+  description = "Suffix for the glue scripts bucket"
 }
 
 variable "public_key" {
-  description = "The public key to use for SSH access to EC2 instances"
   type        = string
+  description = "Public key for the EC2 instance"
 }
 
 variable "key_name" {
-  description = "The name of the key pair to use for EC2 instances"
   type        = string
-  default     = "gamepulse-key"
+  description = "The name of the key pair to use for EC2 instances"
 }

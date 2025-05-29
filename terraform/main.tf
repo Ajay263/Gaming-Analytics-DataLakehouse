@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 3.0"
+      version = "~> 4.0"
     }
   }
 
@@ -17,81 +17,8 @@ terraform {
   }
 }
 
-module "networking" {
-  source = "./modules/networking"
-
-  project_name = var.project_name
-  environment  = var.environment
-  aws_region   = var.aws_region
-  vpc_cidr     = var.vpc_cidr
-  common_tags  = local.common_tags
-}
-
-module "s3" {
-  source = "./modules/s3"
-
-  project_name               = var.project_name
-  environment                = var.environment
-  common_tags                = local.common_tags
-  raw_bucket_suffix          = var.raw_bucket_suffix
-  lakehouse_bucket_suffix    = var.lakehouse_bucket_suffix
-  glue_scripts_bucket_suffix = var.glue_scripts_bucket_suffix
-}
-
-module "ecr" {
-  source = "./modules/ecr"
-
-  project_name = var.project_name
-  environment  = var.environment
-  common_tags  = local.common_tags
-}
-
-module "iam" {
-  source = "./modules/iam"
-
-  project_name            = var.project_name
-  environment             = var.environment
-  common_tags             = local.common_tags
-  raw_data_bucket_arn     = module.s3.raw_data_bucket_arn
-  lakehouse_bucket_arn    = module.s3.lakehouse_bucket_arn
-  glue_scripts_bucket_arn = module.s3.glue_scripts_bucket_arn
-}
-
-module "lambda" {
-  source = "./modules/lambda"
-
-  project_name         = var.project_name
-  environment          = var.environment
-  common_tags          = local.common_tags
-  lambda_zip_path      = var.lambda_zip_path
-  lambda_role_arn      = module.iam.lambda_role_arn
-  raw_data_bucket_name = module.s3.raw_data_bucket_id
-}
-
-module "glue" {
-  source = "./modules/glue"
-
-  project_name             = var.project_name
-  environment              = var.environment
-  common_tags              = local.common_tags
-  glue_role_arn            = module.iam.glue_role_arn
-  glue_scripts_bucket_name = module.s3.glue_scripts_bucket_id
-  raw_data_bucket_name     = module.s3.raw_data_bucket_id
-  lakehouse_bucket_name    = module.s3.lakehouse_bucket_id
-}
-
-module "ec2" {
-  source = "./modules/ec2"
-
-  project_name        = var.project_name
-  environment         = var.environment
-  common_tags         = local.common_tags
-  vpc_id              = module.networking.vpc_id
-  subnet_id           = module.networking.private_subnet_ids[0]
-  allowed_cidr_blocks = var.allowed_cidr_blocks
-  ami_id              = var.ami_id
-  instance_type       = var.instance_type
-  public_key          = var.public_key
+provider "aws" {
+  region = var.aws_region
 }
 
 locals {
@@ -105,11 +32,107 @@ locals {
   }
 }
 
-# S3 bukcet raw data
+# Networking Module
+module "networking" {
+  source = "./modules/networking"
+
+  project_name = var.project_name
+  environment  = var.environment
+  vpc_cidr     = var.vpc_cidr
+  aws_region   = var.aws_region
+  common_tags  = local.common_tags
+}
+
+# S3 Module
+module "s3" {
+  source = "./modules/s3"
+
+  project_name               = var.project_name
+  environment                = var.environment
+  raw_bucket_suffix          = var.raw_bucket_suffix
+  lakehouse_bucket_suffix    = var.lakehouse_bucket_suffix
+  glue_scripts_bucket_suffix = var.glue_scripts_bucket_suffix
+  common_tags                = local.common_tags
+}
+
+# ECR Module
+module "ecr" {
+  source = "./modules/ecr"
+
+  project_name = var.project_name
+  environment  = var.environment
+  common_tags  = local.common_tags
+}
+
+# IAM Module
+module "iam" {
+  source = "./modules/iam"
+
+  project_name            = var.project_name
+  environment             = var.environment
+  raw_data_bucket_arn     = module.s3.raw_data_bucket_arn
+  lakehouse_bucket_arn    = module.s3.lakehouse_bucket_arn
+  glue_scripts_bucket_arn = module.s3.glue_scripts_bucket_arn
+  common_tags             = local.common_tags
+}
+
+# Lambda Module
+module "lambda" {
+  source = "./modules/lambda"
+
+  project_name         = var.project_name
+  environment          = var.environment
+  lambda_role_arn      = module.iam.lambda_role_arn
+  lambda_zip_path      = var.lambda_zip_path
+  raw_data_bucket_name = module.s3.raw_data_bucket_id
+  common_tags          = local.common_tags
+}
+
+# EventBridge Module
+module "eventbridge" {
+  source = "./modules/eventbridge"
+
+  project_name         = var.project_name
+  environment          = var.environment
+  rule_name            = var.eventbridge_rule
+  schedule_expression  = "rate(1 day)"
+  lambda_function_arn  = module.lambda.lambda_function_arn
+  lambda_function_name = module.lambda.lambda_function_name
+  common_tags          = local.common_tags
+}
+
+# Glue Module
+module "glue" {
+  source = "./modules/glue"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  glue_role_arn            = module.iam.glue_role_arn
+  glue_scripts_bucket_name = module.s3.glue_scripts_bucket_id
+  raw_data_bucket_name     = module.s3.raw_data_bucket_id
+  lakehouse_bucket_name    = module.s3.lakehouse_bucket_id
+  common_tags              = local.common_tags
+}
+
+# EC2 Module
+module "ec2" {
+  source = "./modules/ec2"
+
+  project_name        = var.project_name
+  environment         = var.environment
+  vpc_id              = module.networking.vpc_id
+  subnet_id           = module.networking.private_subnet_ids[0]
+  allowed_cidr_blocks = var.allowed_cidr_blocks
+  ami_id              = var.ami_id
+  instance_type       = var.instance_type
+  public_key          = var.public_key
+  common_tags         = local.common_tags
+}
+
+# S3 bucket raw data
 resource "aws_s3_bucket" "vg-raw-bucket" {
   bucket = var.raw_bucket_name
 }
-
 
 # S3 bucket lakehouse 
 resource "aws_s3_bucket" "vg-lakehouse-bucket" {
@@ -143,103 +166,16 @@ resource "aws_s3_object" "delta_jar_storage" {
   source = "../delta_jar/delta-storage-2.1.0.jar"
 }
 
-
 # Eventbridge rule to trigger lambda
 resource "aws_cloudwatch_event_rule" "event-rule" {
   name                = var.eventbridge_rule
   schedule_expression = "rate(2 hours)"
-
-}
-
-#Lambda IAM role
-resource "aws_iam_role" "lambda_iam_role" {
-  name = var.lambda_iam_role_name
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Lambda IAM role policy attachments
-resource "aws_iam_role_policy_attachment" "lambda_ecr" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_s3" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_cloudwatch" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# Glue databases for the lakehouse
-resource "aws_glue_catalog_database" "bronze_database" {
-  name         = var.bronze_glue_database
-  location_uri = var.s3_location_bronze_glue_database
-}
-
-resource "aws_glue_catalog_database" "silver_database" {
-  name         = var.silver_glue_database
-  location_uri = var.s3_location_silver_glue_database
-}
-
-resource "aws_glue_catalog_database" "gold_database" {
-  name         = var.gold_glue_database
-  location_uri = var.s3_location_gold_glue_database
-}
-
-
-# Glue IAM role
-resource "aws_iam_role" "glue_iam_role" {
-  name = var.glue_iam_role_name
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "glue.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Glue IAM role policy attachments
-resource "aws_iam_role_policy_attachment" "glue_s3" {
-  role       = aws_iam_role.glue_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "glue_service" {
-  role       = aws_iam_role.glue_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
 # S3 bucket for glue script
 resource "aws_s3_bucket" "vg-lakehouse-glue-bucket" {
   bucket = var.glue_script_bucket
 }
-
-
 
 resource "aws_security_group" "airflow_security_group" {
   name        = "airflow_security_group"
@@ -252,7 +188,6 @@ resource "aws_security_group" "airflow_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 
   ingress {
     description = "Inbound SCP"
@@ -268,9 +203,7 @@ resource "aws_security_group" "airflow_security_group" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 }
-
 
 data "aws_ami" "ubuntu" {
   most_recent = true

@@ -1,135 +1,236 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'GitHub Actions OIDC Provider and IAM Role for Terraform Operations'
-
-Parameters:
-  Repo:
-    Description: 'The GitHub organization/repository (format: org/repo)'
-    Type: String
-    AllowedPattern: '^[a-zA-Z0-9-_]+/[a-zA-Z0-9-_]+$'
-    ConstraintDescription: 'Must be in format: organization/repository'
-  Environment:
-    Description: 'The GitHub Actions environment name'
-    Type: String
-    Default: 'production'
-    AllowedPattern: '^[a-zA-Z0-9-_]+$'
-    ConstraintDescription: 'Environment name can only contain alphanumeric characters, hyphens, and underscores'
-  TerraformBackendStackName:
-    Description: 'Name of the CloudFormation stack that created the S3 backend'
-    Type: String
-    Default: 'terraform-backend'
-  StateBucketName:
-    Description: 'Name of the S3 bucket for Terraform state'
-    Type: String
-    Default: 'gamepulse-tf-backend-resources'
+AWSTemplateFormatVersion: 2010-09-09
+Description: GitHub OIDC Role for GamePulse Terraform Deployment and Lambda Container Deployments
 
 Resources:
-  GitHubOIDCProvider:
-    Type: 'AWS::IAM::OIDCProvider'
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
     Properties:
-      Url: 'https://token.actions.githubusercontent.com'
-      ClientIdList:
-        - 'sts.amazonaws.com'
-      ThumbprintList:
-        - '6938fd4d98bab03faadb97b34396831e3780aea1'
-        - '1c58a3a8518e8759bf075b76b750d4f2df264fcd'
-      Tags:
-        - Key: Purpose
-          Value: GitHubActions
-
-  TerraformDeployRole:
-    Type: 'AWS::IAM::Role'
-    DependsOn: GitHubOIDCProvider
-    Properties:
-      RoleName: !Sub 'github-actions-${AWS::StackName}'
-      Description: 'IAM Role for GitHub Actions to deploy infrastructure using Terraform'
-      MaxSessionDuration: 3600
+      RoleName: GitHub_Actions_Role
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !GetAtt GitHubOIDCProvider.Arn
-            Action: 'sts:AssumeRoleWithWebIdentity'
+              Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
             Condition:
+              StringLike:
+                'token.actions.githubusercontent.com:sub': 'repo:Ajay263/Gaming-Analytics-DataLakehouse:*'
               StringEquals:
                 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'
-              StringLike:
-                'token.actions.githubusercontent.com:sub': !Sub 'repo:${Repo}:*'
+      Policies:
+        - PolicyName: GitHubActionsDeployPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # VPC and Networking Permissions
+              - Sid: VPCAccess
+                Effect: Allow
+                Action:
+                  - ec2:CreateVpc
+                  - ec2:DeleteVpc
+                  - ec2:CreateSubnet
+                  - ec2:DeleteSubnet
+                  - ec2:CreateRouteTable
+                  - ec2:DeleteRouteTable
+                  - ec2:CreateRoute
+                  - ec2:DeleteRoute
+                  - ec2:AssociateRouteTable
+                  - ec2:DisassociateRouteTable
+                  - ec2:CreateInternetGateway
+                  - ec2:DeleteInternetGateway
+                  - ec2:AttachInternetGateway
+                  - ec2:DetachInternetGateway
+                  - ec2:CreateNatGateway
+                  - ec2:DeleteNatGateway
+                  - ec2:AllocateAddress
+                  - ec2:ReleaseAddress
+                  - ec2:CreateTags
+                  - ec2:DeleteTags
+                Resource: "*"
 
-  TerraformStatePolicy:
-    Type: 'AWS::IAM::ManagedPolicy'
+              # S3 Bucket Permissions
+              - Sid: S3Access
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutBucketVersioning
+                  - s3:GetBucketVersioning
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutBucketAcl
+                  - s3:GetBucketAcl
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
+                Resource:
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-gaming-analytics-*
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-gaming-analytics-*/*
+
+              # ECR Permissions
+              - Sid: ECRAccess
+                Effect: Allow
+                Action:
+                  - ecr:CreateRepository
+                  - ecr:DeleteRepository
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:GetRepositoryPolicy
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                  - ecr:ListImages
+                Resource: !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/gaming-analytics-*
+
+              # Lambda Permissions
+              - Sid: LambdaAccess
+                Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:InvokeFunction
+                  - lambda:ListVersionsByFunction
+                  - lambda:PublishVersion
+                  - lambda:CreateAlias
+                  - lambda:DeleteAlias
+                  - lambda:UpdateAlias
+                Resource: !Sub arn:aws:lambda:*:${AWS::AccountId}:function:gaming-analytics-*
+
+              # EventBridge Permissions
+              - Sid: EventBridgeAccess
+                Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:DeleteRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                  - events:ListRules
+                  - events:ListTargetsByRule
+                  - events:DescribeRule
+                Resource: !Sub arn:aws:events:*:${AWS::AccountId}:rule/gaming-analytics-*
+
+              # CloudWatch Logs Permissions
+              - Sid: CloudWatchLogsAccess
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:CreateLogStream
+                  - logs:DeleteLogStream
+                  - logs:PutLogEvents
+                  - logs:GetLogEvents
+                  - logs:FilterLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*
+                  - !Sub arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/gaming-analytics-*:*
+
+              # Glue Permissions
+              - Sid: GlueAccess
+                Effect: Allow
+                Action:
+                  - glue:CreateDatabase
+                  - glue:DeleteDatabase
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:CreateTable
+                  - glue:DeleteTable
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:CreateJob
+                  - glue:DeleteJob
+                  - glue:GetJob
+                  - glue:StartJobRun
+                  - glue:StopJobRun
+                  - glue:BatchStopJobRun
+                  - glue:UpdateJob
+                Resource: !Sub arn:aws:glue:*:${AWS::AccountId}:*
+
+              # EC2 Instance Permissions
+              - Sid: EC2InstanceAccess
+                Effect: Allow
+                Action:
+                  - ec2:RunInstances
+                  - ec2:TerminateInstances
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                  - ec2:CreateSecurityGroup
+                  - ec2:DeleteSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:DescribeInstances
+                  - ec2:DescribeSecurityGroups
+                  - ec2:CreateKeyPair
+                  - ec2:DeleteKeyPair
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    'aws:ResourceTag/Project': 'gaming-analytics'
+
+              # IAM Role Management
+              - Sid: IAMAccess
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PassRole
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/gaming-analytics-*
+
+              # KMS Permissions for Encryption
+              - Sid: KMSAccess
+                Effect: Allow
+                Action:
+                  - kms:CreateKey
+                  - kms:DescribeKey
+                  - kms:EnableKey
+                  - kms:DisableKey
+                  - kms:CreateAlias
+                  - kms:DeleteAlias
+                  - kms:ListAliases
+                  - kms:GenerateDataKey
+                  - kms:Encrypt
+                  - kms:Decrypt
+                Resource: !Sub arn:aws:kms:*:${AWS::AccountId}:key/*
+                Condition:
+                  StringLike:
+                    'aws:ResourceTag/Project': 'gaming-analytics'
+
+              # Global Read Permissions
+              - Sid: GlobalReadPermissions
+                Effect: Allow
+                Action:
+                  - sts:GetCallerIdentity
+                  - ec2:DescribeAvailabilityZones
+                  - ec2:DescribeRegions
+                  - iam:GetAccountSummary
+                  - ecr:GetAuthorizationToken
+                  - pricing:GetProducts
+                Resource: "*"
+
+  GitHubActionsOidcProvider:
+    Type: AWS::IAM::OIDCProvider
     Properties:
-      Description: 'Policy for accessing Terraform state in S3'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action:
-              - 's3:ListBucket'
-              - 's3:GetBucketVersioning'
-              - 's3:GetBucketLocation'
-            Resource: 
-              - !Sub 'arn:aws:s3:::${StateBucketName}'
-          - Effect: Allow
-            Action:
-              - 's3:GetObject'
-              - 's3:PutObject'
-              - 's3:DeleteObject'
-            Resource:
-              - !Sub 'arn:aws:s3:::${StateBucketName}/*'
-              - !Sub 'arn:aws:s3:::${StateBucketName}/terraform.tfstate'
-              - !Sub 'arn:aws:s3:::${StateBucketName}/terraform.tfstate.tflock'
-      Roles:
-        - !Ref TerraformDeployRole
-
-  TerraformDeployPolicy:
-    Type: 'AWS::IAM::ManagedPolicy'
-    Properties:
-      Description: 'Policy for Terraform deployments via GitHub Actions'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action:
-              # EC2 Permissions
-              - 'ec2:*'
-              # VPC Permissions
-              - 'vpc:*'
-              # IAM Permissions
-              - 'iam:GetRole'
-              - 'iam:CreateRole'
-              - 'iam:DeleteRole'
-              - 'iam:PutRolePolicy'
-              - 'iam:GetRolePolicy'
-              - 'iam:DeleteRolePolicy'
-              - 'iam:ListRolePolicies'
-              - 'iam:ListAttachedRolePolicies'
-              - 'iam:AttachRolePolicy'
-              - 'iam:DetachRolePolicy'
-              - 'iam:PassRole'
-              # CloudWatch Logs
-              - 'logs:*'
-              # KMS for Encryption
-              - 'kms:*'
-            Resource: '*'
-      Roles:
-        - !Ref TerraformDeployRole
-
-Outputs:
-  RoleARN:
-    Description: 'ARN of the IAM Role for GitHub Actions'
-    Value: !GetAtt TerraformDeployRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-RoleARN'
-  
-  RoleName:
-    Description: 'Name of the IAM Role for GitHub Actions'
-    Value: !Ref TerraformDeployRole
-    Export:
-      Name: !Sub '${AWS::StackName}-RoleName'
-
-  OIDCProviderArn:
-    Description: 'ARN of the OIDC Provider'
-    Value: !GetAtt GitHubOIDCProvider.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-OIDCProviderArn' 
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+      Url: https://token.actions.githubusercontent.com

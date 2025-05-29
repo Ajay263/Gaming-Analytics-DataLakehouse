@@ -1,0 +1,268 @@
+---
+  AWSTemplateFormatVersion: 2010-09-09
+  Description: GitHub OIDC for when GitHub wants to communicate with AWS.
+  Resources:
+  
+    # This is the bare-bones role.
+    GitHubActionsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: GitHub_Actions_Role
+        AssumeRolePolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringLike:
+                  ## THESE ARE CASE SENSITIVE!
+                  'token.actions.githubusercontent.com:sub': ['repo:Ajay263/Gaming-Analytics-DataLakehouse:*']
+                StringEquals:
+                  'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'
+        Policies:
+          - PolicyName: OidcSafetyPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Sid: OidcSafeties
+                  Effect: Deny
+                  Action:
+                    - sts:AssumeRole
+                  Resource: "*"
+          - PolicyName: GitHubActionsDeployPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Sid: S3Permissions
+                  Effect: Allow
+                  Action:
+                    - s3:CreateBucket
+                    - s3:DeleteBucket
+                    - s3:ListBucket
+                    - s3:PutBucketVersioning
+                    - s3:GetBucketVersioning
+                    - s3:PutBucketEncryption
+                    - s3:GetBucketEncryption
+                    - s3:PutObject
+                    - s3:GetObject
+                    - s3:DeleteObject
+                    - s3:PutBucketPolicy
+                    - s3:GetBucketPolicy
+                    - s3:GetBucketAcl
+                    - s3:PutBucketAcl
+                    - s3:GetBucketTagging
+                    - s3:PutBucketTagging
+                    - s3:GetBucketCors
+                    - s3:PutBucketCors
+                    - s3:DeleteBucketCors
+                    - s3:GetBucketWebsite
+                    - s3:PutBucketWebsite
+                    - s3:DeleteBucketWebsite
+                  Resource:
+                    - !Sub arn:aws:s3:::${AWS::AccountId}-*
+                    - !Sub arn:aws:s3:::${AWS::AccountId}-*/*
+                    - arn:aws:s3:::gamepulse-*
+                    - arn:aws:s3:::gamepulse-*/*
+                    - arn:aws:s3:::*-tf-backend-resources
+                    - arn:aws:s3:::*-tf-backend-resources/*
+                
+                - Sid: IAMPermissions
+                  Effect: Allow
+                  Action:
+                    - iam:CreateRole
+                    - iam:DeleteRole
+                    - iam:GetRole
+                    - iam:PutRolePolicy
+                    - iam:DeleteRolePolicy
+                    - iam:GetRolePolicy
+                    - iam:CreatePolicy
+                    - iam:DeletePolicy
+                    - iam:GetPolicy
+                    - iam:ListPolicyVersions
+                    - iam:CreatePolicyVersion
+                    - iam:DeletePolicyVersion
+                    - iam:GetPolicyVersion
+                    - iam:TagRole
+                    - iam:UntagRole
+                    - iam:ListRolePolicies
+                    - iam:ListAttachedRolePolicies
+                    - iam:AttachRolePolicy
+                    - iam:DetachRolePolicy
+                    - iam:ListInstanceProfilesForRole
+                    - iam:CreateInstanceProfile
+                    - iam:DeleteInstanceProfile
+                    - iam:GetInstanceProfile
+                    - iam:RemoveRoleFromInstanceProfile
+                    - iam:AddRoleToInstanceProfile
+                    - iam:PassRole
+                  Resource:
+                    - !Sub arn:aws:iam::${AWS::AccountId}:role/*
+                    - !Sub arn:aws:iam::${AWS::AccountId}:policy/*
+                    - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/*
+                
+                - Sid: LambdaPermissions
+                  Effect: Allow
+                  Action:
+                    - lambda:CreateFunction
+                    - lambda:DeleteFunction
+                    - lambda:GetFunction
+                    - lambda:UpdateFunctionCode
+                    - lambda:UpdateFunctionConfiguration
+                    - lambda:AddPermission
+                    - lambda:RemovePermission
+                    - lambda:TagResource
+                    - lambda:UntagResource
+                    - lambda:ListTagsForResource
+                  Resource:
+                    - !Sub arn:aws:lambda:*:${AWS::AccountId}:function:*
+                
+                - Sid: GluePermissions
+                  Effect: Allow
+                  Action:
+                    - glue:CreateDatabase
+                    - glue:DeleteDatabase
+                    - glue:GetDatabase
+                    - glue:CreateTable
+                    - glue:DeleteTable
+                    - glue:GetTable
+                    - glue:CreateJob
+                    - glue:DeleteJob
+                    - glue:GetJob
+                    - glue:UpdateJob
+                    - glue:TagResource
+                    - glue:UntagResource
+                    - glue:GetTags
+                    - glue:ListTags
+                  Resource:
+                    - !Sub arn:aws:glue:*:${AWS::AccountId}:catalog
+                    - !Sub arn:aws:glue:*:${AWS::AccountId}:database/*
+                    - !Sub arn:aws:glue:*:${AWS::AccountId}:table/*/*
+                    - !Sub arn:aws:glue:*:${AWS::AccountId}:job/*
+                
+                - Sid: EC2Permissions
+                  Effect: Allow
+                  Action:
+                    - ec2:RunInstances
+                    - ec2:TerminateInstances
+                    - ec2:DescribeInstances
+                    - ec2:CreateSecurityGroup
+                    - ec2:DeleteSecurityGroup
+                    - ec2:AuthorizeSecurityGroupIngress
+                    - ec2:RevokeSecurityGroupIngress
+                    - ec2:CreateTags
+                    - ec2:DeleteTags
+                    - ec2:DescribeSecurityGroups
+                    - ec2:DescribeVpcs
+                    - ec2:DescribeSubnets
+                    - ec2:DescribeKeyPairs
+                    - ec2:CreateKeyPair
+                    - ec2:DeleteKeyPair
+                    - ec2:DescribeImages
+                    - ec2:DescribeVpcAttribute
+                    - ec2:CreateVpc
+                    - ec2:DeleteVpc
+                    - ec2:ModifyVpcAttribute
+                    - ec2:CreateSubnet
+                    - ec2:DeleteSubnet
+                    - ec2:ModifySubnetAttribute
+                    - ec2:CreateRouteTable
+                    - ec2:DeleteRouteTable
+                    - ec2:AssociateRouteTable
+                    - ec2:DisassociateRouteTable
+                    - ec2:CreateRoute
+                    - ec2:DeleteRoute
+                    - ec2:CreateInternetGateway
+                    - ec2:DeleteInternetGateway
+                    - ec2:AttachInternetGateway
+                    - ec2:DetachInternetGateway
+                    - ec2:CreateNatGateway
+                    - ec2:DeleteNatGateway
+                    - ec2:DescribeNatGateways
+                    - ec2:AllocateAddress
+                    - ec2:ReleaseAddress
+                    - ec2:DescribeAddresses
+                    - ec2:AssociateAddress
+                    - ec2:DisassociateAddress
+                    - ec2:DescribeAddressesAttribute
+                    - ec2:CreateVpcEndpoint
+                    - ec2:DeleteVpcEndpoint
+                    - ec2:DescribeVpcEndpoints
+                    - ec2:ModifyVpcEndpoint
+                    - ec2:DescribePrefixLists
+                  Resource: "*"
+                
+                - Sid: ECRPermissions
+                  Effect: Allow
+                  Action:
+                    - ecr:CreateRepository
+                    - ecr:DeleteRepository
+                    - ecr:DescribeRepositories
+                    - ecr:PutImageScanningConfiguration
+                    - ecr:PutImageTagMutability
+                    - ecr:TagResource
+                    - ecr:UntagResource
+                    - ecr:ListTagsForResource
+                  Resource:
+                    - !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/*
+                
+                - Sid: DynamoDBPermissions
+                  Effect: Allow
+                  Action:
+                    - dynamodb:CreateTable
+                    - dynamodb:DeleteTable
+                    - dynamodb:DescribeTable
+                    - dynamodb:TagResource
+                    - dynamodb:UntagResource
+                    - dynamodb:PutItem
+                    - dynamodb:DeleteItem
+                    - dynamodb:GetItem
+                  Resource:
+                    - !Sub arn:aws:dynamodb:*:${AWS::AccountId}:table/*
+                
+                - Sid: CloudWatchPermissions
+                  Effect: Allow
+                  Action:
+                    - events:PutRule
+                    - events:DeleteRule
+                    - events:DescribeRule
+                    - events:PutTargets
+                    - events:RemoveTargets
+                    - events:TagResource
+                    - events:UntagResource
+                    - events:ListTagsForResource
+                    - logs:CreateLogGroup
+                    - logs:DeleteLogGroup
+                    - logs:DescribeLogGroups
+                    - logs:CreateLogStream
+                    - logs:DeleteLogStream
+                    - logs:DescribeLogStreams
+                    - logs:PutLogEvents
+                  Resource:
+                    - !Sub arn:aws:events:*:${AWS::AccountId}:rule/*
+                    - !Sub arn:aws:logs:*:${AWS::AccountId}:*
+                
+                - Sid: GlobalPermissions
+                  Effect: Allow
+                  Action:
+                    - ec2:DescribeAvailabilityZones
+                    - ec2:DescribeRegions
+                    - iam:GetRole
+                    - iam:ListRoles
+                    - ec2:DescribeAccountAttributes
+                    - ec2:DescribeNetworkInterfaces
+                    - ec2:DescribeRouteTables
+                    - ec2:DescribeInternetGateways
+                  Resource: "*"
+    
+    # This is the OIDC provider hookup itself. This tells AWS to delegate authN GitHub
+    GitHubActionsOidcProvider:
+      Type: AWS::IAM::OIDCProvider
+      Properties:
+        ClientIdList:
+          - sts.amazonaws.com
+        ThumbprintList:
+          - 6938fd4d98bab03faadb97b34396831e3780aea1
+          - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+        Url: https://token.actions.githubusercontent.com
