@@ -221,43 +221,6 @@ resource "aws_lambda_function" "data_collector" {
   tags = local.common_tags
 }
 
-# EventBridge Rule
-resource "aws_cloudwatch_event_rule" "lambda_trigger" {
-  name                = "${var.project_name}-daily-trigger-${var.environment}"
-  description         = "Triggers Lambda function daily"
-  schedule_expression = "rate(1 day)"
-  tags                = local.common_tags
-}
-
-resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.lambda_trigger.name
-  target_id = "LambdaFunction"
-  arn       = aws_lambda_function.data_collector.arn
-}
-
-# IAM Roles and Policies
-resource "aws_iam_role" "lambda_role" {
-  name = "${var.project_name}-lambda-role-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "lambda.amazonaws.com"
-      }
-    }]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
 # Glue Resources
 resource "aws_glue_catalog_database" "bronze" {
   name = "${var.project_name}_bronze_${var.environment}"
