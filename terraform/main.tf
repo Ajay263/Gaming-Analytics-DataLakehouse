@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 3.0"
+      version = "~> 4.0"
     }
   }
 
@@ -15,6 +15,28 @@ terraform {
     encrypt      = true
     use_lockfile = true
   }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "project_name" {
+  description = "Project name to be used for resource naming"
+  type        = string
+  default     = "gaming-analytics"
+}
+
+variable "environment" {
+  description = "Environment (dev/staging/prod)"
+  type        = string
+  default     = "dev"
 }
 
 module "networking" {

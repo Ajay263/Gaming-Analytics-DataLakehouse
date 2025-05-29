@@ -1,11 +1,11 @@
-FROM public.ecr.aws/lambda/python:3.12
+FROM public.ecr.aws/lambda/python:3.9
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 
 COPY requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-COPY . .
+COPY app.py ${LAMBDA_TASK_ROOT}
 
-CMD [ "data_generator.lambda_handler" ]
+CMD [ "app.handler" ]
