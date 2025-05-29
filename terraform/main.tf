@@ -96,8 +96,8 @@ module "eventbridge" {
   environment          = var.environment
   rule_name            = var.eventbridge_rule
   schedule_expression  = "rate(1 day)"
-  lambda_function_arn  = module.lambda.function_arn
-  lambda_function_name = module.lambda.function_name
+  lambda_function_arn  = module.lambda.lambda_function_arn
+  lambda_function_name = module.lambda.lambda_function_name
   common_tags          = local.common_tags
 }
 
