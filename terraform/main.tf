@@ -39,6 +39,88 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "owner" {
+  description = "Owner of the project"
+  type        = string
+  default     = "GamePulse"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "raw_bucket_suffix" {
+  description = "Suffix for the raw data bucket"
+  type        = string
+  default     = "raw-data"
+}
+
+variable "lakehouse_bucket_suffix" {
+  description = "Suffix for the lakehouse bucket"
+  type        = string
+  default     = "lakehouse"
+}
+
+variable "glue_scripts_bucket_suffix" {
+  description = "Suffix for the glue scripts bucket"
+  type        = string
+  default     = "glue-scripts"
+}
+
+variable "raw_bucket_name" {
+  description = "Name of the raw data bucket"
+  type        = string
+}
+
+variable "lakehouse_bucket_name" {
+  description = "Name of the lakehouse bucket"
+  type        = string
+}
+
+variable "eventbridge_rule" {
+  description = "Name of the eventbridge rule"
+  type        = string
+}
+
+variable "lambda_zip_path" {
+  description = "Path to the lambda zip file"
+  type        = string
+}
+
+variable "allowed_cidr_blocks" {
+  description = "Allowed CIDR blocks for the EC2 instance"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "ami_id" {
+  description = "ID of the AMI to use for the EC2 instance"
+  type        = string
+}
+
+variable "instance_type" {
+  description = "Instance type for the EC2 instance"
+  type        = string
+}
+
+variable "public_key" {
+  description = "Public key for the EC2 instance"
+  type        = string
+}
+
+locals {
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Terraform   = "true"
+    Owner       = var.owner
+    Application = "GamePulse"
+    Domain      = "Gaming Analytics"
+  }
+}
+
 module "networking" {
   source = "./modules/networking"
 
@@ -116,22 +198,10 @@ module "ec2" {
   public_key          = var.public_key
 }
 
-locals {
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-    Terraform   = "true"
-    Owner       = var.owner
-    Application = "GamePulse"
-    Domain      = "Gaming Analytics"
-  }
-}
-
-# S3 bukcet raw data
+# S3 bucket raw data
 resource "aws_s3_bucket" "vg-raw-bucket" {
   bucket = var.raw_bucket_name
 }
-
 
 # S3 bucket lakehouse 
 resource "aws_s3_bucket" "vg-lakehouse-bucket" {
@@ -165,103 +235,16 @@ resource "aws_s3_object" "delta_jar_storage" {
   source = "../delta_jar/delta-storage-2.1.0.jar"
 }
 
-
 # Eventbridge rule to trigger lambda
 resource "aws_cloudwatch_event_rule" "event-rule" {
   name                = var.eventbridge_rule
   schedule_expression = "rate(2 hours)"
-
-}
-
-#Lambda IAM role
-resource "aws_iam_role" "lambda_iam_role" {
-  name = var.lambda_iam_role_name
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Lambda IAM role policy attachments
-resource "aws_iam_role_policy_attachment" "lambda_ecr" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_s3" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_cloudwatch" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# Glue databases for the lakehouse
-resource "aws_glue_catalog_database" "bronze_database" {
-  name         = var.bronze_glue_database
-  location_uri = var.s3_location_bronze_glue_database
-}
-
-resource "aws_glue_catalog_database" "silver_database" {
-  name         = var.silver_glue_database
-  location_uri = var.s3_location_silver_glue_database
-}
-
-resource "aws_glue_catalog_database" "gold_database" {
-  name         = var.gold_glue_database
-  location_uri = var.s3_location_gold_glue_database
-}
-
-
-# Glue IAM role
-resource "aws_iam_role" "glue_iam_role" {
-  name = var.glue_iam_role_name
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "glue.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Glue IAM role policy attachments
-resource "aws_iam_role_policy_attachment" "glue_s3" {
-  role       = aws_iam_role.glue_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "glue_service" {
-  role       = aws_iam_role.glue_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
 # S3 bucket for glue script
 resource "aws_s3_bucket" "vg-lakehouse-glue-bucket" {
   bucket = var.glue_script_bucket
 }
-
-
 
 resource "aws_security_group" "airflow_security_group" {
   name        = "airflow_security_group"
@@ -274,7 +257,6 @@ resource "aws_security_group" "airflow_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 
   ingress {
     description = "Inbound SCP"
@@ -290,9 +272,7 @@ resource "aws_security_group" "airflow_security_group" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 }
-
 
 data "aws_ami" "ubuntu" {
   most_recent = true
